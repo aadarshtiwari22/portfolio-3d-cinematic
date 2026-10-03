@@ -1,0 +1,131 @@
+const canvas = document.getElementById('particles');
+const ctx = canvas.getContext('2d');
+
+const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+function resizeCanvas() {
+  canvas.width = window.innerWidth * window.devicePixelRatio;
+  canvas.height = window.innerHeight * window.devicePixelRatio;
+  canvas.style.width = `${window.innerWidth}px`;
+  canvas.style.height = `${window.innerHeight}px`;
+  ctx.setTransform(window.devicePixelRatio, 0, 0, window.devicePixelRatio, 0, 0);
+}
+
+const particles = [];
+
+function createParticle() {
+  const speed = 0.35 + Math.random() * 1.6;
+  return {
+    x: Math.random() * window.innerWidth,
+    y: Math.random() * window.innerHeight,
+    radius: Math.random() * 1.8 + 0.8,
+    dx: (Math.random() - 0.5) * speed,
+    dy: (Math.random() - 0.5) * speed,
+    alpha: Math.random() * 0.8 + 0.2,
+  };
+}
+
+function initParticles() {
+  particles.length = 0;
+  const total = Math.min(180, Math.max(80, Math.floor(window.innerWidth / 12)));
+  for (let i = 0; i < total; i += 1) {
+    particles.push(createParticle());
+  }
+}
+
+function drawParticles() {
+  ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+
+  particles.forEach((particle, index) => {
+    particle.x += particle.dx;
+    particle.y += particle.dy;
+
+    if (particle.x < 0 || particle.x > window.innerWidth) particle.dx *= -1;
+    if (particle.y < 0 || particle.y > window.innerHeight) particle.dy *= -1;
+
+    ctx.beginPath();
+    ctx.arc(particle.x, particle.y, particle.radius, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(128, 229, 255, ${particle.alpha})`;
+    ctx.fill();
+
+    for (let j = index + 1; j < particles.length; j += 1) {
+      const other = particles[j];
+      const distanceX = particle.x - other.x;
+      const distanceY = particle.y - other.y;
+      const distance = Math.sqrt(distanceX * distanceX + distanceY * distanceY);
+
+      if (distance < 120) {
+        ctx.beginPath();
+        ctx.moveTo(particle.x, particle.y);
+        ctx.lineTo(other.x, other.y);
+        ctx.strokeStyle = `rgba(153, 209, 255, ${0.14 - distance / 1000})`;
+        ctx.stroke();
+      }
+    }
+  });
+
+  requestAnimationFrame(drawParticles);
+}
+
+const revealItems = document.querySelectorAll('.reveal');
+
+const observer = new IntersectionObserver(
+  (entries) => {
+    entries.forEach((entry) => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+      }
+    });
+  },
+  { threshold: 0.15 }
+);
+
+revealItems.forEach((item) => observer.observe(item));
+
+function parallaxHero() {
+  const hero = document.querySelector('.hero');
+  const scene = document.querySelector('.lab-scene');
+  const cubes = document.querySelectorAll('.floating-cube');
+  const glow = document.querySelector('.hero-glow-two');
+
+  if (!hero || !scene || prefersReducedMotion) return;
+
+  window.addEventListener('pointermove', (event) => {
+    const x = (event.clientX / window.innerWidth - 0.5) * 18;
+    const y = (event.clientY / window.innerHeight - 0.5) * 18;
+
+    scene.style.transform = `rotateX(${(-y * 0.4).toFixed(2)}deg) rotateY(${(x * 0.6).toFixed(2)}deg)`;
+
+    cubes.forEach((cube, index) => {
+      const depth = (index + 1) * 10;
+      cube.style.transform = `translate3d(${x * depth}px, ${y * depth}px, 0) rotate(12deg) rotateY(20deg)`;
+    });
+
+    if (glow) {
+      glow.style.transform = `translate(${x * 1.5}px, ${y * 1.5}px)`;
+    }
+  });
+}
+
+if (!prefersReducedMotion) {
+  resizeCanvas();
+  initParticles();
+  drawParticles();
+} else {
+  ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+}
+
+window.addEventListener('resize', () => {
+  resizeCanvas();
+  initParticles();
+});
+
+parallaxHero();
+
+const navLinks = document.querySelectorAll('.nav-links a');
+navLinks.forEach((link) => {
+  link.addEventListener('click', () => {
+    navLinks.forEach((item) => item.classList.remove('active'));
+    link.classList.add('active');
+  });
+});
